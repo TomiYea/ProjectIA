@@ -134,13 +134,15 @@ class PipeMania(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        val = state.board.get_value(row,col)
         up_conects = ["FC", "BC", "BE", "BD", "VC", "VD", "LV"]
         down_conects = ["FB", "BB", "BE", "BD", "VB", "VE", "LV"]
         left_conects = ["FE", "BC", "BE", "BB", "VC", "VE", "LH"]
         right_conects = ["FD", "BC", "BB", "BD", "VB", "VD", "LH"]
+        checker = [[]]
         for row in range(state.board.size):
             for col in range(state.board.size):
+                checker[row][col] = 0
+                val = state.board.get_value(row,col)
                 (up, down) = state.board.adjacent_vertical_values(row,col)
                 if (up_conects.__contains__(val) != down_conects.__contains__(up)):
                     return False
@@ -151,8 +153,25 @@ class PipeMania(Problem):
                     return False
                 if (right_conects.__contains__(val) != left_conects.__contains__(right)):
                     return False
+                
+        def flow(row, col):
+            checker[row][col] = 1
+            valu = state.board.get_value(row,col)
+            if (up_conects.__contains__(valu) and checker[row-1][col] == 0):
+                flow(row-1, col)
+            if (down_conects.__contains__(valu) and checker[row+1][col] == 0):
+                flow(row+1, col)
+            if (left_conects.__contains__(valu) and checker[row][col-1] == 0):
+                flow(row, col-1)
+            if (right_conects.__contains__(valu) and checker[row][col+1] == 0):
+                flow(row, col+1)
+
+        flow(0, 0)
+        for obama in range(state.board.size):
+            if (checker.__contains__(0)):
+                return False
         return True
-        
+
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""

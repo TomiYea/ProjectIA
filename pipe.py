@@ -167,8 +167,8 @@ class PipeMania(Problem):
                 flow(row, col+1)
 
         flow(0, 0)
-        for obama in range(state.board.size):
-            if (checker.__contains__(0)):
+        for obama in checker:
+            if (obama.__contains__(0)):
                 return False
         return True
 

@@ -30,7 +30,15 @@ class Board:
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        return self.board[row][col]
+        return self.board[row][col][0]
+    
+    def get_movable(self, row: int, col: int) -> bool:
+        """Devolve se a peça pode ser movida"""
+        return self.board[row][col][1]
+    
+    def set_moved(self, row: int, col: int):
+        """Define a peça como imovível"""
+        self.board[row][col][1] = False
 
     def adjacent_vertical_values(self, row: int, col: int) -> tuple[str, str]:
         """Devolve os valores imediatamente acima e abaixo,
@@ -38,11 +46,11 @@ class Board:
         if row == 0:
             up = None
         else:
-            up = self.board[row - 1][col]
+            up = self.board[row - 1][col][0]
         if row == self.size-1:
             down = None
         else:
-            down = self.board[row + 1][col]
+            down = self.board[row + 1][col][0]
         return (up, down)
 
     def adjacent_horizontal_values(self, row: int, col: int) -> tuple[str, str]:
@@ -51,11 +59,11 @@ class Board:
         if col == 0:
             left = None
         else:
-            left = self.board[row][col - 1]
+            left = self.board[row][col - 1][0]
         if row == self.size-1:
             right = None
         else:
-            right = self.board[row][col + 1]
+            right = self.board[row][col + 1][0]
         return (left, right)
 
     @staticmethod
@@ -69,7 +77,7 @@ class Board:
         board.add_line(line)
         for obama in range(1, size):
             line = stdin.readline().split("\t")
-            board.add_line(line)
+            board.add_line((line, True))
         return board
 
     # TODO: outros metodos da classe
@@ -100,10 +108,11 @@ class PipeMania(Problem):
         actions = []
         for row in range(state.board.size):
             for col in range(state.board.size):
-                if (state.board.get_value(row,col)[0] == 'L'):
-                    actions.append((row,col,1))
-                else:
-                    actions.append((row,col,-1),(row,col,1),(row,col,2))
+                if (state.board.get_movable(row,col)):
+                    if (state.board.get_value(row,col) == 'L'):
+                        actions.append((row,col,1))
+                    else:
+                        actions.append((row,col,-1),(row,col,1),(row,col,2))
         return actions
 
     def result(self, state: PipeManiaState, action: tuple[int, int, int]):
@@ -111,6 +120,7 @@ class PipeMania(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
+        state.board.set_moved(action[0], action[1])
         val = state.board.get_value(action[0], action[1])
         if (val[0] == 'L'):
             if (val[1] == 'H'):
@@ -184,6 +194,7 @@ class PipeMania(Problem):
 if __name__ == "__main__":
     # TODO:
     # Ler o ficheiro do standard input,
+    board = Board.parse_instance()
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.

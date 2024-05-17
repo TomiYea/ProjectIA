@@ -2,10 +2,11 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes sugeridas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 29:
+# 106211 Tomás Dias Monteiro
+# 106196 Diogo Cruz Diniz
 
+import numpy as np
 import sys
 from search import (
     Problem,
@@ -17,103 +18,140 @@ from search import (
     recursive_best_first_search,
 )
 
+# [=== Constants ===]
+# == Pieces == 
+PIECE_NONE = 0
+PIECE_VB = 1
+PIECE_VD = 2
+PIECE_VC = 3
+PIECE_VE = 4
+PIECE_FB = 5
+PIECE_FD = 6
+PIECE_FC = 7
+PIECE_FE = 8
+PIECE_BB = 9
+PIECE_BD = 10
+PIECE_BC = 11
+PIECE_BE = 12
+PIECE_LH = 13
+PIECE_LV = 14
+PIECE_MAX = 14
+
+PIECE_TO_STR = ["NONE", "VB", "VD", "VC", "VE", "FB", "FD", "FC", "FE", "BB", "BD", "BC", "BE", "LH", "LV"]
+STR_TO_PIECE = { "LH": PIECE_LH, "LV": PIECE_LV, "VB": PIECE_VB, "VD": PIECE_VD, "VC": PIECE_VC, "VE": PIECE_VE, "BB": PIECE_BB, "BD": PIECE_BD, "BC": PIECE_BC, "BE": PIECE_BE, "FB": PIECE_FB, "FD": PIECE_FD, "FC": PIECE_FC, "FE": PIECE_FE }
+
+# == Indices ==
+PIECE_IDX = 0
+MOVABLE_IDX = 1
+
+
+
+# [=== Code ===]
+
+def piece_to_str(piece : int) -> str:
+    return PIECE_TO_STR[piece]
+
+def str_to_piece(name : str) -> int:
+    return STR_TO_PIECE.get(name, PIECE_NONE)
+
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
+
+    board : np.ndarray[int]
+    size : int
     
     def __init__(self, size):
-            self.board = []
+            self.board = np.ndarray((size, size, 2))
             self.size = size
-            self.counter = 0
-
-    def translate(piece):
-        """Transforma as peças de string para int e vice-versa"""
-        legenda = ["LH", "LV", "VB", "VD", "VC", "VE", "BB", "BD", "BC", "BE", "FB", "FD", "FC", "FE"]
-        if (isinstance(piece, int)):
-            return legenda[piece]
-        else:
-            return legenda.index(piece)
 
     def get_value(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        return self.board[row][col][0]
+        return self.board[row, col, PIECE_IDX]
     
-    def set_value(self, row: int, col: int, val: int):
+    def set_value(self, row: int, col: int, val: int) -> None:
         """Define o valor na respetiva posição do tabuleiro"""
-        self.board[row][col][0] = val;
+        self.board[row, col, PIECE_IDX] = val;
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
-        return self.board[row][col][1]
+        return self.board[row, col, MOVABLE_IDX] == 0
     
-    def set_moved(self, row: int, col: int):
+    def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
-        self.board[row][col][1] = False
+        self.board[row, col, MOVABLE_IDX] = False
 
     def adjacent_vertical_values(self, row: int, col: int) -> tuple[int, int]:
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
         if row == 0:
-            up = None
+            up = PIECE_NONE
         else:
-            up = self.board[row - 1][col][0]
+            up = self.get_value(row - 1, col)
         if row == self.size-1:
-            down = None
+            down = PIECE_NONE
         else:
-            down = self.board[row + 1][col][0]
+            down = self.get_value(row + 1, col)
         return (up, down)
 
     def adjacent_horizontal_values(self, row: int, col: int) -> tuple[int, int]:
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         if col == 0:
-            left = None
+            left = PIECE_NONE
         else:
-            left = self.board[row][col - 1][0]
+            left = self.get_value(row, col - 1)
         if row == self.size-1:
-            right = None
+            right = PIECE_NONE
         else:
-            right = self.board[row][col + 1][0]
+            right = self.get_value(row, col + 1)
         return (left, right)
     
-    def add_line(self, line: list):
+    def parse_line(self, line: list[str], line_num: int) -> None:
         """Guarda uma linha do board"""
-        newline = []
-        for p in line:
-            newline.append((self.translate(p), True))
-        self.board.append(newline)
+        for i in range(len(line)):
+            self.set_value(line_num, i, str_to_piece(line[i]))
+            pass
 
-    def setup(self):
+    def setup(self) -> None:
         """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
         nessa posição."""
-        #             0     1     2     3    4     5     6      7     8    9     10    11    12    13
-        #legenda = ["LH", "LV", "VB", "VD", "VC", "VE", "BB", "BD", "BC", "BE", "FB", "FD", "FC", "FE"]
-        #up_conects = ["FC", "BC", "BE", "BD", "VC", "VD", "LV"]
-        #down_conects = ["FB", "BB", "BE", "BD", "VB", "VE", "LV"]
-        #left_conects = ["FE", "BC", "BE", "BB", "VC", "VE", "LH"]
-        #right_conects = ["FD", "BC", "BB", "BD", "VB", "VD", "LH"]
-        tochecklist = []
+
+        # Defaulting rules:
+        # Prefer vertical
+        # Prefer positive growing (right or down)
+
+        # == Check valid corners if they are V or F pieces ==
+        # Top left corner
         canto = self.get_value(0, 0)
-        if (canto <= 5):
-            self.set_value(0, 0, 2)
+        if (canto <= PIECE_VE):
+            self.set_value(0, 0, PIECE_VB)
             self.set_moved(0, 0)
+        elif (canto == PIECE_FC or canto == PIECE_FE):
+            self.set_value(0, 0, PIECE_FB)
 
-        canto = self.get_value(0, self.size)
-        if (canto <= 5):
-            self.set_value(0, self.size, 5)
-            self.set_moved(0, self.size)
+        # Top right corner
+        canto = self.get_value(0, self.size - 1)
+        if (canto <= PIECE_VE):
+            self.set_value(0, self.size - 1, PIECE_VE)
+            self.set_moved(0, self.size - 1)
+        elif (canto == PIECE_FC or canto == PIECE_FD):
+            self.set_value(0, 0, PIECE_FB)
 
-        canto = self.get_value(self.size, 0)
-        if (canto <= 5):
-            self.set_value(self.size, 0, 3)
-            self.set_moved(self.size, 0)
+        # Bottom left corner
+        canto = self.get_value(self.size - 1, 0)
+        if (canto <= PIECE_VE):
+            self.set_value(self.size - 1, 0, PIECE_VD)
+            self.set_moved(self.size - 1, 0)
+        elif (canto == PIECE_FB or canto == PIECE_FE):
+            self.set_value(0, 0, PIECE_FC)
 
-        canto = self.get_value(self.size, self.size)
-        if (canto <= 5):
-            self.set_value(self.size, self.size, 4)
-            self.set_moved(self.size, self.size)
-        
-        for i in range(1, self.size - 1):
-            pass
+        #Bottom right corner
+        canto = self.get_value(self.size - 1, self.size - 1)
+        if (canto <= PIECE_VE):
+            self.set_value(self.size - 1, self.size - 1, PIECE_VC)
+            self.set_moved(self.size - 1, self.size - 1)
+        elif (canto == PIECE_FB or canto == PIECE_FD):
+            self.set_value(0, 0, PIECE_FC)
 
     @staticmethod
     def parse_instance():
@@ -123,10 +161,10 @@ class Board:
         line = stdin.readline().split("\t")
         size = line.count()
         board = Board(size)
-        board.add_line(line)
+        board.parse_line(line, 0)
         for obama in range(1, size):
             line = stdin.readline().split("\t")
-            board.add_line(line)
+            board.parse_line(line, obama - 1)
         return board
 
     # TODO: outros metodos da classe
@@ -157,11 +195,11 @@ class PipeMania(Problem):
         actions = []
         for row in range(state.board.size):
             for col in range(state.board.size):
-                if (state.board.get_movable(row,col)):
-                    if (state.board.get_value(row,col) <= 1):
-                        actions.append((row,col,1))
+                if (state.board.get_movable(row, col)):
+                    if (state.board.get_value(row, col) <= 1):
+                        actions.append((row, col, 1))
                     else:
-                        actions.append((row,col,3),(row,col,1),(row,col,2))
+                        actions.append((row, col, 3), (row, col, 1), (row, col, 2))
         return actions
 
     def result(self, state: PipeManiaState, action: tuple[int, int, int]):
@@ -215,7 +253,7 @@ class PipeMania(Problem):
                 
         def flow(row, col):
             checker[row][col] = 1
-            valu = state.board.get_value(row,col)
+            valu = state.board.get_value(row, col)
             if (up_conects.__contains__(valu) and checker[row-1][col] == 0):
                 flow(row-1, col)
             if (down_conects.__contains__(valu) and checker[row+1][col] == 0):
@@ -241,9 +279,8 @@ class PipeMania(Problem):
 
 
 if __name__ == "__main__":
-    # TODO:
-    # Ler o ficheiro do standard input,
     board = Board.parse_instance()
+    # TODO:
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.

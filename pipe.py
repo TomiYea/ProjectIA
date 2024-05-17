@@ -40,6 +40,12 @@ PIECE_MAX = 14
 PIECE_TO_STR = ["NONE", "VB", "VD", "VC", "VE", "FB", "FD", "FC", "FE", "BB", "BD", "BC", "BE", "LH", "LV"]
 STR_TO_PIECE = { "LH": PIECE_LH, "LV": PIECE_LV, "VB": PIECE_VB, "VD": PIECE_VD, "VC": PIECE_VC, "VE": PIECE_VE, "BB": PIECE_BB, "BD": PIECE_BD, "BC": PIECE_BC, "BE": PIECE_BE, "FB": PIECE_FB, "FD": PIECE_FD, "FC": PIECE_FC, "FE": PIECE_FE }
 
+# == Connections ==
+CONNECTS_UP = [PIECE_FC, PIECE_BC, PIECE_BE, PIECE_BD, PIECE_VC, PIECE_VD, PIECE_LV]
+CONNECTS_DOWN = [PIECE_FB, PIECE_BB, PIECE_BE, PIECE_BD, PIECE_VB, PIECE_VE, PIECE_LV]
+CONNECTS_LEFT = [PIECE_FE, PIECE_BC, PIECE_BE, PIECE_BB, PIECE_VC, PIECE_VE, PIECE_LH]
+CONNECTS_RIGHT = [PIECE_FD, PIECE_BC, PIECE_BB, PIECE_BD, PIECE_VB, PIECE_VD, PIECE_LH]
+
 # == Indices ==
 PIECE_IDX = 0
 MOVABLE_IDX = 1
@@ -112,6 +118,35 @@ class Board:
             self.set_value(line_num, i, str_to_piece(line[i]))
             pass
 
+    def __setup_corners(self) -> None:
+        # == Check valid corners if they are V pieces ==
+        # Top left corner
+        canto = self.get_value(0, 0)
+        if (canto <= PIECE_VE):
+            self.set_value(0, 0, PIECE_VB)
+            self.set_moved(0, 0)
+
+        # Top right corner
+        canto = self.get_value(0, self.size - 1)
+        if (canto <= PIECE_VE):
+            self.set_value(0, self.size - 1, PIECE_VE)
+            self.set_moved(0, self.size - 1)
+
+        # Bottom left corner
+        canto = self.get_value(self.size - 1, 0)
+        if (canto <= PIECE_VE):
+            self.set_value(self.size - 1, 0, PIECE_VD)
+            self.set_moved(self.size - 1, 0)
+
+        #Bottom right corner
+        canto = self.get_value(self.size - 1, self.size - 1)
+        if (canto <= PIECE_VE):
+            self.set_value(self.size - 1, self.size - 1, PIECE_VC)
+            self.set_moved(self.size - 1, self.size - 1)
+
+    def __check_connects_no_edge(self, row: int, col: int):
+        pass
+
     def setup(self) -> None:
         """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
         nessa posição."""
@@ -120,38 +155,59 @@ class Board:
         # Prefer vertical
         # Prefer positive growing (right or down)
 
-        # == Check valid corners if they are V or F pieces ==
-        # Top left corner
-        canto = self.get_value(0, 0)
-        if (canto <= PIECE_VE):
-            self.set_value(0, 0, PIECE_VB)
-            self.set_moved(0, 0)
-        elif (canto == PIECE_FC or canto == PIECE_FE):
-            self.set_value(0, 0, PIECE_FB)
+        self.__setup_corners();
+        
+        # == Check non-corner edges if they are B or L pieces ==
+        # == At the same time, build list to check later ==
+        to_check : list[tuple[int, int]] = []
+        for i in range(1, self.size - 1):
+            # Top edge
+            piece = self.get_value(0, i)
+            if (piece >= PIECE_BB and piece <= PIECE_BE):
+                self.set_value(0, i, PIECE_BB)
+                self.set_moved(0, i)
+                to_check.append((1, i))
+            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.set_value(0, i, PIECE_LH)
+                self.set_moved(0, i)
+                to_check.append((1, i))
+            
+            # Bottom edge
+            piece = self.get_value(self.size - 1, i)
+            if (piece >= PIECE_BB and piece <= PIECE_BE):
+                self.set_value(self.size - 1, i, PIECE_BC)
+                self.set_moved(self.size - 1, i)
+                to_check.append((self.size - 2, i))
+            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.set_value(self.size - 1, i, PIECE_LH)
+                self.set_moved(self.size - 1, i)
+                to_check.append((self.size - 2, i))
 
-        # Top right corner
-        canto = self.get_value(0, self.size - 1)
-        if (canto <= PIECE_VE):
-            self.set_value(0, self.size - 1, PIECE_VE)
-            self.set_moved(0, self.size - 1)
-        elif (canto == PIECE_FC or canto == PIECE_FD):
-            self.set_value(0, 0, PIECE_FB)
+            # Left edge
+            piece = self.get_value(i, 0)
+            if (piece >= PIECE_BB and piece <= PIECE_BE):
+                self.set_value(i, 0, PIECE_BD)
+                self.set_moved(i, 0)
+                to_check.append((i, 1))
+            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.set_value(i, 0, PIECE_LV)
+                self.set_moved(i, 0)
+                to_check.append((i, 1))
 
-        # Bottom left corner
-        canto = self.get_value(self.size - 1, 0)
-        if (canto <= PIECE_VE):
-            self.set_value(self.size - 1, 0, PIECE_VD)
-            self.set_moved(self.size - 1, 0)
-        elif (canto == PIECE_FB or canto == PIECE_FE):
-            self.set_value(0, 0, PIECE_FC)
+            # Right edge
+            piece = self.get_value(i, self.size - 1)
+            if (piece >= PIECE_BB and piece <= PIECE_BE):
+                self.set_value(i, self.size - 1, PIECE_BE)
+                self.set_moved(i, self.size - 1)
+                to_check.append((i, self.size - 2))
+            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.set_value(i, self.size - 1, PIECE_LV)
+                self.set_moved(i, self.size - 1)
+                to_check.append((i, self.size - 2))
+        
+        while (len(to_check)):
+            x, y = to_check.pop()
 
-        #Bottom right corner
-        canto = self.get_value(self.size - 1, self.size - 1)
-        if (canto <= PIECE_VE):
-            self.set_value(self.size - 1, self.size - 1, PIECE_VC)
-            self.set_moved(self.size - 1, self.size - 1)
-        elif (canto == PIECE_FB or canto == PIECE_FD):
-            self.set_value(0, 0, PIECE_FC)
 
     @staticmethod
     def parse_instance():
@@ -225,42 +281,33 @@ class PipeMania(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        #             0     1     2     3    4     5     6      7     8    9     10    11    12    13
-        #legenda = ["LH", "LV", "VB", "VD", "VC", "VE", "BB", "BD", "BC", "BE", "FB", "FD", "FC", "FE"]
-        #up_conects = ["FC", "BC", "BE", "BD", "VC", "VD", "LV"]
-        up_conects = [12, 8, 9, 7, 4, 3, 1]
-        #down_conects = ["FB", "BB", "BE", "BD", "VB", "VE", "LV"]
-        down_conects = [10, 6, 9, 7, 2, 5, 1]
-        #left_conects = ["FE", "BC", "BE", "BB", "VC", "VE", "LH"]
-        left_conects = [13, 8, 9, 6, 4, 5, 0]
-        #right_conects = ["FD", "BC", "BB", "BD", "VB", "VD", "LH"]
-        right_conects = [11, 8, 6, 7, 2, 3, 0]
+        
         checker = [[]]
         for row in range(state.board.size):
             for col in range(state.board.size):
                 checker[row][col] = 0
                 val = state.board.get_value(row,col)
                 (up, down) = state.board.adjacent_vertical_values(row,col)
-                if (up_conects.__contains__(val) != down_conects.__contains__(up)):
+                if (CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
                     return False
-                if (down_conects.__contains__(val) != up_conects.__contains__(down)):
+                if (CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
                     return False
                 (left, right) = state.board.adjacent_horizontal_values(row,col)
-                if (left_conects.__contains__(val) != right_conects.__contains__(left)):
+                if (CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
                     return False
-                if (right_conects.__contains__(val) != left_conects.__contains__(right)):
+                if (CONNECTS_RIGHT.__contains__(val) != CONNECTS_LEFT.__contains__(right)):
                     return False
                 
         def flow(row, col):
             checker[row][col] = 1
             valu = state.board.get_value(row, col)
-            if (up_conects.__contains__(valu) and checker[row-1][col] == 0):
+            if (CONNECTS_UP.__contains__(valu) and checker[row-1][col] == 0):
                 flow(row-1, col)
-            if (down_conects.__contains__(valu) and checker[row+1][col] == 0):
+            if (CONNECTS_DOWN.__contains__(valu) and checker[row+1][col] == 0):
                 flow(row+1, col)
-            if (left_conects.__contains__(valu) and checker[row][col-1] == 0):
+            if (CONNECTS_LEFT.__contains__(valu) and checker[row][col-1] == 0):
                 flow(row, col-1)
-            if (right_conects.__contains__(valu) and checker[row][col+1] == 0):
+            if (CONNECTS_RIGHT.__contains__(valu) and checker[row][col+1] == 0):
                 flow(row, col+1)
 
         flow(0, 0)

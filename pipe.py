@@ -21,16 +21,25 @@ class Board:
     """Representação interna de um tabuleiro de PipeMania."""
     
     def __init__(self, size):
-            self.board = [[]]
+            self.board = []
             self.size = size
+            self.counter = 0
 
-    def add_line(self, line):
-        """Guarda uma linha do board"""
-        self.board.append(line)
+    def translate(piece):
+        """Transforma as peças de string para int e vice-versa"""
+        legenda = ["LH", "LV", "VB", "VD", "VC", "VE", "BB", "BD", "BC", "BE", "FB", "FD", "FC", "FE"]
+        if (isinstance(piece, int)):
+            return legenda[piece]
+        else:
+            return legenda.index(piece)
 
-    def get_value(self, row: int, col: int) -> str:
+    def get_value(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
         return self.board[row][col][0]
+    
+    def set_value(self, row: int, col: int, val: int):
+        """Define o valor na respetiva posição do tabuleiro"""
+        self.board[row][col][0] = val;
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
@@ -40,7 +49,7 @@ class Board:
         """Define a peça como imovível"""
         self.board[row][col][1] = False
 
-    def adjacent_vertical_values(self, row: int, col: int) -> tuple[str, str]:
+    def adjacent_vertical_values(self, row: int, col: int) -> tuple[int, int]:
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
         if row == 0:
@@ -53,7 +62,7 @@ class Board:
             down = self.board[row + 1][col][0]
         return (up, down)
 
-    def adjacent_horizontal_values(self, row: int, col: int) -> tuple[str, str]:
+    def adjacent_horizontal_values(self, row: int, col: int) -> tuple[int, int]:
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         if col == 0:
@@ -65,6 +74,46 @@ class Board:
         else:
             right = self.board[row][col + 1][0]
         return (left, right)
+    
+    def add_line(self, line: list):
+        """Guarda uma linha do board"""
+        newline = []
+        for p in line:
+            newline.append((self.translate(p), True))
+        self.board.append(newline)
+
+    def setup(self):
+        """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
+        nessa posição."""
+        #             0     1     2     3    4     5     6      7     8    9     10    11    12    13
+        #legenda = ["LH", "LV", "VB", "VD", "VC", "VE", "BB", "BD", "BC", "BE", "FB", "FD", "FC", "FE"]
+        #up_conects = ["FC", "BC", "BE", "BD", "VC", "VD", "LV"]
+        #down_conects = ["FB", "BB", "BE", "BD", "VB", "VE", "LV"]
+        #left_conects = ["FE", "BC", "BE", "BB", "VC", "VE", "LH"]
+        #right_conects = ["FD", "BC", "BB", "BD", "VB", "VD", "LH"]
+        tochecklist = []
+        canto = self.get_value(0, 0)
+        if (canto <= 5):
+            self.set_value(0, 0, 2)
+            self.set_moved(0, 0)
+
+        canto = self.get_value(0, self.size)
+        if (canto <= 5):
+            self.set_value(0, self.size, 5)
+            self.set_moved(0, self.size)
+
+        canto = self.get_value(self.size, 0)
+        if (canto <= 5):
+            self.set_value(self.size, 0, 3)
+            self.set_moved(self.size, 0)
+
+        canto = self.get_value(self.size, self.size)
+        if (canto <= 5):
+            self.set_value(self.size, self.size, 4)
+            self.set_moved(self.size, self.size)
+        
+        for i in range(1, self.size - 1):
+            pass
 
     @staticmethod
     def parse_instance():
@@ -77,7 +126,7 @@ class Board:
         board.add_line(line)
         for obama in range(1, size):
             line = stdin.readline().split("\t")
-            board.add_line((line, True))
+            board.add_line(line)
         return board
 
     # TODO: outros metodos da classe
@@ -109,10 +158,10 @@ class PipeMania(Problem):
         for row in range(state.board.size):
             for col in range(state.board.size):
                 if (state.board.get_movable(row,col)):
-                    if (state.board.get_value(row,col) == 'L'):
+                    if (state.board.get_value(row,col) <= 1):
                         actions.append((row,col,1))
                     else:
-                        actions.append((row,col,-1),(row,col,1),(row,col,2))
+                        actions.append((row,col,3),(row,col,1),(row,col,2))
         return actions
 
     def result(self, state: PipeManiaState, action: tuple[int, int, int]):
@@ -120,34 +169,34 @@ class PipeMania(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
+        #TODO
         state.board.set_moved(action[0], action[1])
         val = state.board.get_value(action[0], action[1])
-        if (val[0] == 'L'):
-            if (val[1] == 'H'):
-                return "LV"
-            else:
-                return "LH"
-        elif (val[0] == 'V'):
-            poss = ["VB", "VD", "VC", "VE"]
-            i = poss.index(val)
-            return poss[(i + action[2])%4]
-        elif (val[0] == 'B'):
-            poss = ["BB", "BD", "BC", "BE"]
-            i = poss.index(val)
-            return poss[(i + action[2])%4]
+        if (val == 0):
+            return 1
+        elif (val == 1):
+            return 0
+        elif (val <= 5):
+            return ((val - 2) + action[2]%4) + 2
+        elif (val <= 9):
+            return ((val - 6) + action[2]%4) + 6
         else:
-            poss = ["FB", "FD", "FC", "FE"]
-            i = poss.index(val)
-            return poss[(i + action[2])%4]
+            return ((val - 10) + action[2]%4) + 10
 
     def goal_test(self, state: PipeManiaState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        up_conects = ["FC", "BC", "BE", "BD", "VC", "VD", "LV"]
-        down_conects = ["FB", "BB", "BE", "BD", "VB", "VE", "LV"]
-        left_conects = ["FE", "BC", "BE", "BB", "VC", "VE", "LH"]
-        right_conects = ["FD", "BC", "BB", "BD", "VB", "VD", "LH"]
+        #             0     1     2     3    4     5     6      7     8    9     10    11    12    13
+        #legenda = ["LH", "LV", "VB", "VD", "VC", "VE", "BB", "BD", "BC", "BE", "FB", "FD", "FC", "FE"]
+        #up_conects = ["FC", "BC", "BE", "BD", "VC", "VD", "LV"]
+        up_conects = [12, 8, 9, 7, 4, 3, 1]
+        #down_conects = ["FB", "BB", "BE", "BD", "VB", "VE", "LV"]
+        down_conects = [10, 6, 9, 7, 2, 5, 1]
+        #left_conects = ["FE", "BC", "BE", "BB", "VC", "VE", "LH"]
+        left_conects = [13, 8, 9, 6, 4, 5, 0]
+        #right_conects = ["FD", "BC", "BB", "BD", "VB", "VD", "LH"]
+        right_conects = [11, 8, 6, 7, 2, 3, 0]
         checker = [[]]
         for row in range(state.board.size):
             for col in range(state.board.size):

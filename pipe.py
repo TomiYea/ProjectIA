@@ -21,18 +21,18 @@ from search import (
 # [=== Constants ===]
 # == Pieces == 
 PIECE_NONE = 0
-PIECE_VB = 1
-PIECE_VD = 2
-PIECE_VC = 3
-PIECE_VE = 4
-PIECE_FB = 5
-PIECE_FD = 6
-PIECE_FC = 7
-PIECE_FE = 8
-PIECE_BB = 9
-PIECE_BD = 10
-PIECE_BC = 11
-PIECE_BE = 12
+PIECE_BB = 1
+PIECE_BD = 2
+PIECE_BC = 3
+PIECE_BE = 4
+PIECE_VB = 5
+PIECE_VD = 6
+PIECE_VC = 7
+PIECE_VE = 8
+PIECE_FB = 9
+PIECE_FD = 10
+PIECE_FC = 11
+PIECE_FE = 12
 PIECE_LH = 13
 PIECE_LV = 14
 PIECE_MAX = 14
@@ -49,6 +49,11 @@ CONNECTS_RIGHT = [PIECE_FD, PIECE_BC, PIECE_BB, PIECE_BD, PIECE_VB, PIECE_VD, PI
 # == Rotations ==
 ROTATIONS_OF = [
     [], # NONE
+    #BX
+    [PIECE_BD, PIECE_BC, PIECE_BE],
+    [PIECE_BB, PIECE_BC, PIECE_BE],
+    [PIECE_BB, PIECE_BD, PIECE_BE],
+    [PIECE_BB, PIECE_BD, PIECE_BC],
     #VX
     [PIECE_VD, PIECE_VC, PIECE_VE],
     [PIECE_VB, PIECE_VC, PIECE_VE],
@@ -59,11 +64,6 @@ ROTATIONS_OF = [
     [PIECE_FB, PIECE_FC, PIECE_FE],
     [PIECE_FB, PIECE_FD, PIECE_FE],
     [PIECE_FB, PIECE_FD, PIECE_FC],
-    #BX
-    [PIECE_BD, PIECE_BC, PIECE_BE],
-    [PIECE_BB, PIECE_BC, PIECE_BE],
-    [PIECE_BB, PIECE_BD, PIECE_BE],
-    [PIECE_BB, PIECE_BD, PIECE_BC],
     #LX
     [PIECE_LV],
     [PIECE_LH],
@@ -105,6 +105,10 @@ class Board:
         """Devolve se a peça pode ser movida"""
         return self.board[row, col, MOVABLE_IDX] == 0
     
+    def set_movable(self, row: int, col: int, val: bool) -> None:
+        """Define a peça como movível se True e imovível se False"""
+        self.board[row, col, MOVABLE_IDX] = val
+    
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
         self.board[row, col, MOVABLE_IDX] = False
@@ -139,7 +143,82 @@ class Board:
         """Guarda uma linha do board"""
         for i in range(len(line)):
             self.set_value(line_num, i, str_to_piece(line[i]))
-            pass
+            self.set_movable(line_num, i, True)
+
+    def __check_connects_immovable(self, row: int, col: int, val: int) -> bool:
+        """Retorna False se a peça estiver definitivamente numa posição errada"""
+        (up, down) = self.adjacent_vertical_values(row,col)
+        if (up != PIECE_NONE):
+            if (not self.get_movable(row - 1, col) and CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
+                return False
+        else:
+            if (CONNECTS_UP.__contains__(val)):
+                return False
+        if (down != PIECE_NONE):
+            if (not self.get_movable(row + 1, col) and  CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
+                return False
+        else:
+            if (CONNECTS_DOWN.__contains__(val)):
+                return False
+        (left, right) = self.adjacent_horizontal_values(row,col)
+        if (left != PIECE_NONE):
+            if (not self.get_movable(row, col - 1) and CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
+                return False
+        else:
+            if (CONNECTS_LEFT.__contains__(val)):
+                return False
+        if (right != PIECE_NONE):
+            if (not self.get_movable(row, col + 1) and CONNECTS_RIGHT.__contains__(val) != CONNECTS_LEFT.__contains__(right)):
+                return False
+        else:
+            if (CONNECTS_RIGHT.__contains__(val)):
+                return False
+        return True
+
+    def __check_adjacents(self, row: int, col: int) -> None:
+        """Põe as peças possíveis na posição certa"""
+        to_check : list[tuple[int, int]] = []
+
+        if (row != 0 and self.get_movable(row - 1, col)):
+            to_check.append((row - 1, col))
+            self.set_moved(row - 1, col)
+        if (row != self.size - 1 and self.get_movable(row + 1, col)):
+            to_check.append((row + 1, col))
+            self.set_moved(row + 1, col)
+        if (col != 0 and self.get_movable(row, col - 1)):
+            to_check.append((row, col - 1))
+            self.set_moved(row, col - 1)
+        if (row != self.size - 1 and self.get_movable(row, col + 1)):
+            to_check.append((row, col + 1))
+            self.set_moved(row, col + 1)
+        while (len(to_check)):
+            x, y = to_check.pop()
+            piece = self.get_value(x, y)
+            self.set_movable(x, y, True)
+            valid = []
+            if (self.__check_connects_immovable(x, y, piece)):
+                valid.append(piece)
+
+            for rotation in ROTATIONS_OF[piece]:
+                if (self.__check_connects_immovable(x, y, rotation)):
+                    valid.append(piece)
+
+            if (len(valid) == 1):
+                self.set_value(x, y, valid[0])
+                self.set_moved(x, y)
+                # Add unmoved neighbours
+                if (x != 0 and self.get_movable(x - 1, y)):
+                    to_check.append((x - 1, y))
+                    self.set_moved(x - 1, y)
+                if (x != self.size - 1 and self.get_movable(x + 1, y)):
+                    to_check.append((x + 1, y))
+                    self.set_moved(x + 1, y)
+                if (y != 0 and self.get_movable(x, y - 1)):
+                    to_check.append((x, y - 1))
+                    self.set_moved(x, y - 1)
+                if (y != self.size - 1 and self.get_movable(x, y + 1)):
+                    to_check.append((x, y + 1))
+                    self.set_moved(x, y + 1)
 
     def __setup_corners(self) -> None:
         # == Check valid corners if they are V pieces ==
@@ -148,37 +227,28 @@ class Board:
         if (canto <= PIECE_VE):
             self.set_value(0, 0, PIECE_VB)
             self.set_moved(0, 0)
+            self.__check_adjacents(0, 0)
 
         # Top right corner
         canto = self.get_value(0, self.size - 1)
         if (canto <= PIECE_VE):
             self.set_value(0, self.size - 1, PIECE_VE)
             self.set_moved(0, self.size - 1)
+            self.__check_adjacents(0, self.size - 1)
 
         # Bottom left corner
         canto = self.get_value(self.size - 1, 0)
         if (canto <= PIECE_VE):
             self.set_value(self.size - 1, 0, PIECE_VD)
             self.set_moved(self.size - 1, 0)
+            self.__check_adjacents(self.size - 1, 0)
 
         #Bottom right corner
         canto = self.get_value(self.size - 1, self.size - 1)
         if (canto <= PIECE_VE):
             self.set_value(self.size - 1, self.size - 1, PIECE_VC)
             self.set_moved(self.size - 1, self.size - 1)
-
-    def __check_connects_immovable_no_edge(self, row: int, col: int, val: int) -> bool:
-        (up, down) = self.adjacent_vertical_values(row,col)
-        if (not self.get_movable(row - 1, col) and CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
-            return False
-        if (not self.get_movable(row + 1, col) and  CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
-            return False
-        (left, right) = self.adjacent_horizontal_values(row,col)
-        if (not self.get_movable(row, col - 1) and CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
-            return False
-        if (not self.get_movable(row, col + 1) and CONNECTS_RIGHT.__contains__(val) != CONNECTS_LEFT.__contains__(right)):
-            return False
-        return True
+            self.__check_adjacents(self.size - 1, self.size - 1)
 
     def setup(self) -> None:
         """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
@@ -188,76 +258,58 @@ class Board:
         
         # == Check non-corner edges if they are B or L pieces ==
         # == At the same time, build list to check later ==
-        to_check : list[tuple[int, int]] = []
         for i in range(1, self.size - 1):
             # Top edge
             piece = self.get_value(0, i)
-            if (piece >= PIECE_BB and piece <= PIECE_BE):
+            if (piece <= PIECE_BE):
                 self.set_value(0, i, PIECE_BB)
                 self.set_moved(0, i)
-                to_check.append((1, i))
-            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.__check_adjacents(1, i)
+            elif (piece >= PIECE_LH):
                 self.set_value(0, i, PIECE_LH)
                 self.set_moved(0, i)
-                to_check.append((1, i))
+                self.__check_adjacents(1, i)
             
             # Bottom edge
             piece = self.get_value(self.size - 1, i)
-            if (piece >= PIECE_BB and piece <= PIECE_BE):
+            if (piece <= PIECE_BE):
                 self.set_value(self.size - 1, i, PIECE_BC)
                 self.set_moved(self.size - 1, i)
-                to_check.append((self.size - 2, i))
-            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.__check_adjacents(self.size - 2, i)
+            elif (piece >= PIECE_LH):
                 self.set_value(self.size - 1, i, PIECE_LH)
                 self.set_moved(self.size - 1, i)
-                to_check.append((self.size - 2, i))
+                self.__check_adjacents(self.size - 2, i)
 
             # Left edge
             piece = self.get_value(i, 0)
-            if (piece >= PIECE_BB and piece <= PIECE_BE):
+            if (piece <= PIECE_BE):
                 self.set_value(i, 0, PIECE_BD)
                 self.set_moved(i, 0)
-                to_check.append((i, 1))
-            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.__check_adjacents(i, 1)
+            elif (piece >= PIECE_LH):
                 self.set_value(i, 0, PIECE_LV)
                 self.set_moved(i, 0)
-                to_check.append((i, 1))
+                self.__check_adjacents(i, 1)
 
             # Right edge
             piece = self.get_value(i, self.size - 1)
-            if (piece >= PIECE_BB and piece <= PIECE_BE):
+            if (piece <= PIECE_BE):
                 self.set_value(i, self.size - 1, PIECE_BE)
                 self.set_moved(i, self.size - 1)
-                to_check.append((i, self.size - 2))
-            elif (piece == PIECE_LV or piece == PIECE_LH):
+                self.__check_adjacents(i, self.size - 2)
+            elif (piece >= PIECE_LH):
                 self.set_value(i, self.size - 1, PIECE_LV)
                 self.set_moved(i, self.size - 1)
-                to_check.append((i, self.size - 2))
-        
-        while (len(to_check)):
-            x, y = to_check.pop()
-            piece = self.get_value(x, y)
-            valid = []
-            if (self.__check_connects_immovable_no_edge(x, y, piece)):
-                valid.append(piece)
-                pass
+                self.__check_adjacents(i, self.size - 2)
 
-            for rotation in ROTATIONS_OF[piece]:
-                if (self.__check_connects_immovable_no_edge(x, y, rotation)):
-                    valid.append(piece)
-
-            if (len(valid) == 1):
-                self.set_value(x, y, valid[0])
-                self.set_moved(x, y)
-                # Add unmoved neighbours
-                if (self.get_movable(x - 1, y)):
-                    to_check.append((x - 1, y))
-                if (self.get_movable(x + 1, y)):
-                    to_check.append((x + 1, y))
-                if (self.get_movable(x, y - 1)):
-                    to_check.append((x, y - 1))
-                if (self.get_movable(x, y + 1)):
-                    to_check.append((x, y + 1))
+    def deep_copy(self):
+        copy = Board(self.size)
+        for row in range(self.size):
+            for col in range(self.size):
+                copy.set_value(row, col, self.get_value(row, col))
+                copy.set_movable(row, col, self.get_movable(row, col))
+        return copy
 
     @staticmethod
     def parse_instance():
@@ -302,30 +354,21 @@ class PipeMania(Problem):
         for row in range(state.board.size):
             for col in range(state.board.size):
                 if (state.board.get_movable(row, col)):
-                    if (state.board.get_value(row, col) <= 1):
-                        actions.append((row, col, 1))
-                    else:
-                        actions.append((row, col, 3), (row, col, 1), (row, col, 2))
+                    val = state.board.get_value(row, col)
+                    for pos in ROTATIONS_OF[val]:
+                        actions.append((row, col, pos))
         return actions
 
-    def result(self, state: PipeManiaState, action: tuple[int, int, int]):
+    def result(self, state: PipeManiaState, action: tuple[int, int, int]) -> PipeManiaState:
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         #TODO
-        state.board.set_moved(action[0], action[1])
-        val = state.board.get_value(action[0], action[1])
-        if (val == 0):
-            return 1
-        elif (val == 1):
-            return 0
-        elif (val <= 5):
-            return ((val - 2) + action[2]%4) + 2
-        elif (val <= 9):
-            return ((val - 6) + action[2]%4) + 6
-        else:
-            return ((val - 10) + action[2]%4) + 10
+        copy = state.board.deep_copy()
+        copy.set_value(action[0], action[1], action[2])
+        copy.set_moved(action[0], action[1])
+        return PipeManiaState(copy)
 
     def goal_test(self, state: PipeManiaState):
         """Retorna True se e só se o estado passado como argumento é

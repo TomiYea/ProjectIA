@@ -46,6 +46,29 @@ CONNECTS_DOWN = [PIECE_FB, PIECE_BB, PIECE_BE, PIECE_BD, PIECE_VB, PIECE_VE, PIE
 CONNECTS_LEFT = [PIECE_FE, PIECE_BC, PIECE_BE, PIECE_BB, PIECE_VC, PIECE_VE, PIECE_LH]
 CONNECTS_RIGHT = [PIECE_FD, PIECE_BC, PIECE_BB, PIECE_BD, PIECE_VB, PIECE_VD, PIECE_LH]
 
+# == Rotations ==
+ROTATIONS_OF = [
+    [], # NONE
+    #VX
+    [PIECE_VD, PIECE_VC, PIECE_VE],
+    [PIECE_VB, PIECE_VC, PIECE_VE],
+    [PIECE_VB, PIECE_VD, PIECE_VE],
+    [PIECE_VB, PIECE_VD, PIECE_VC],
+    #FX
+    [PIECE_FD, PIECE_FC, PIECE_FE],
+    [PIECE_FB, PIECE_FC, PIECE_FE],
+    [PIECE_FB, PIECE_FD, PIECE_FE],
+    [PIECE_FB, PIECE_FD, PIECE_FC],
+    #BX
+    [PIECE_BD, PIECE_BC, PIECE_BE],
+    [PIECE_BB, PIECE_BC, PIECE_BE],
+    [PIECE_BB, PIECE_BD, PIECE_BE],
+    [PIECE_BB, PIECE_BD, PIECE_BC],
+    #LX
+    [PIECE_LV],
+    [PIECE_LH],
+]
+
 # == Indices ==
 PIECE_IDX = 0
 MOVABLE_IDX = 1
@@ -76,7 +99,7 @@ class Board:
     
     def set_value(self, row: int, col: int, val: int) -> None:
         """Define o valor na respetiva posição do tabuleiro"""
-        self.board[row, col, PIECE_IDX] = val;
+        self.board[row, col, PIECE_IDX] = val
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
@@ -144,18 +167,24 @@ class Board:
             self.set_value(self.size - 1, self.size - 1, PIECE_VC)
             self.set_moved(self.size - 1, self.size - 1)
 
-    def __check_connects_no_edge(self, row: int, col: int):
-        pass
+    def __check_connects_immovable_no_edge(self, row: int, col: int, val: int) -> bool:
+        (up, down) = self.adjacent_vertical_values(row,col)
+        if (not self.get_movable(row - 1, col) and CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
+            return False
+        if (not self.get_movable(row + 1, col) and  CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
+            return False
+        (left, right) = self.adjacent_horizontal_values(row,col)
+        if (not self.get_movable(row, col - 1) and CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
+            return False
+        if (not self.get_movable(row, col + 1) and CONNECTS_RIGHT.__contains__(val) != CONNECTS_LEFT.__contains__(right)):
+            return False
+        return True
 
     def setup(self) -> None:
         """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
         nessa posição."""
 
-        # Defaulting rules:
-        # Prefer vertical
-        # Prefer positive growing (right or down)
-
-        self.__setup_corners();
+        self.__setup_corners()
         
         # == Check non-corner edges if they are B or L pieces ==
         # == At the same time, build list to check later ==
@@ -207,7 +236,28 @@ class Board:
         
         while (len(to_check)):
             x, y = to_check.pop()
+            piece = self.get_value(x, y)
+            valid = []
+            if (self.__check_connects_immovable_no_edge(x, y, piece)):
+                valid.append(piece)
+                pass
 
+            for rotation in ROTATIONS_OF[piece]:
+                if (self.__check_connects_immovable_no_edge(x, y, rotation)):
+                    valid.append(piece)
+
+            if (len(valid) == 1):
+                self.set_value(x, y, valid[0])
+                self.set_moved(x, y)
+                # Add unmoved neighbours
+                if (self.get_movable(x - 1, y)):
+                    to_check.append((x - 1, y))
+                if (self.get_movable(x + 1, y)):
+                    to_check.append((x + 1, y))
+                if (self.get_movable(x, y - 1)):
+                    to_check.append((x, y - 1))
+                if (self.get_movable(x, y + 1)):
+                    to_check.append((x, y + 1))
 
     @staticmethod
     def parse_instance():

@@ -7,7 +7,6 @@
 # 106196 Diogo Cruz Diniz
 
 import numpy as np
-import sys
 from search import (
     Problem,
     Node,
@@ -86,12 +85,17 @@ def str_to_piece(name : str) -> int:
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
 
-    board : np.ndarray[int]
+    board : "np.ndarray[int]"
     size : int
     
     def __init__(self, size):
-            self.board = np.ndarray((size, size, 2))
-            self.size = size
+        self.board = np.ndarray((size, size, 2))
+        self.size = size
+
+    @staticmethod
+    def deep_copy(old: 'Board') -> 'Board':
+        ret = Board(old)
+        ret.board = np.copy(old.board)
 
     def get_value(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -113,7 +117,7 @@ class Board:
         """Define a peça como imovível"""
         self.board[row, col, MOVABLE_IDX] = False
 
-    def adjacent_vertical_values(self, row: int, col: int) -> tuple[int, int]:
+    def adjacent_vertical_values(self, row: int, col: int) -> "tuple[int, int]":
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
         if row == 0:
@@ -126,7 +130,7 @@ class Board:
             down = self.get_value(row + 1, col)
         return (up, down)
 
-    def adjacent_horizontal_values(self, row: int, col: int) -> tuple[int, int]:
+    def adjacent_horizontal_values(self, row: int, col: int) -> "tuple[int, int]":
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         if col == 0:
@@ -139,7 +143,7 @@ class Board:
             right = self.get_value(row, col + 1)
         return (left, right)
     
-    def parse_line(self, line: list[str], line_num: int) -> None:
+    def parse_line(self, line: "list[str]", line_num: int) -> None:
         """Guarda uma linha do board"""
         for i in range(len(line)):
             self.set_value(line_num, i, str_to_piece(line[i]))
@@ -303,13 +307,15 @@ class Board:
                 self.set_moved(i, self.size - 1)
                 self.__check_adjacents(i, self.size - 2)
 
-    def deep_copy(self):
-        copy = Board(self.size)
+    def __str__(self) -> str:
+        ret = ""
         for row in range(self.size):
+            ret += "\n"
             for col in range(self.size):
-                copy.set_value(row, col, self.get_value(row, col))
-                copy.set_movable(row, col, self.get_movable(row, col))
-        return copy
+                ret += piece_to_str(self.get_value(row, col))
+                ret += "\t"
+            ret[:-1]
+        return ret[1:]
 
     @staticmethod
     def parse_instance():
@@ -317,7 +323,7 @@ class Board:
         e retorna uma instância da classe Board."""
         from sys import stdin
         line = stdin.readline().split("\t")
-        size = line.count()
+        size = len(line)
         board = Board(size)
         board.parse_line(line, 0)
         for obama in range(1, size):
@@ -325,10 +331,9 @@ class Board:
             board.parse_line(line, obama - 1)
         return board
 
-    # TODO: outros metodos da classe
-
 class PipeManiaState:
-    state_id = 0
+    state_id: int = 0
+    board: Board
 
     def __init__(self, board: Board):
         self.board = board
@@ -339,8 +344,6 @@ class PipeManiaState:
         """ Este método é utilizado em caso de empate na gestão da lista
         de abertos nas procuras informadas. """
         return self.id < other.id
-
-    # TODO: outros metodos da classe
 
 class PipeMania(Problem):
     def __init__(self, board: Board):
@@ -353,19 +356,20 @@ class PipeMania(Problem):
         actions = []
         for row in range(state.board.size):
             for col in range(state.board.size):
-                if (state.board.get_movable(row, col)):
-                    val = state.board.get_value(row, col)
-                    for pos in ROTATIONS_OF[val]:
-                        actions.append((row, col, pos))
+                if (not state.board.get_movable(row, col)):
+                    continue
+                val = state.board.get_value(row, col)
+                for pos in ROTATIONS_OF[val]:
+                    actions.append((row, col, pos))
         return actions
 
-    def result(self, state: PipeManiaState, action: tuple[int, int, int]) -> PipeManiaState:
+    def result(self, state: PipeManiaState, action: "tuple[int, int, int]") -> PipeManiaState:
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         #TODO
-        copy = state.board.deep_copy()
+        copy = Board(state.board)
         copy.set_value(action[0], action[1], action[2])
         copy.set_moved(action[0], action[1])
         return PipeManiaState(copy)
@@ -376,8 +380,8 @@ class PipeMania(Problem):
         estão preenchidas de acordo com as regras do problema."""
         
         checker = [[]]
-        for row in range(state.board.size):
-            for col in range(state.board.size):
+        for row in range(state.board.size - 1):
+            for col in range(state.board.size - 1):
                 checker[row][col] = 0
                 val = state.board.get_value(row,col)
                 (up, down) = state.board.adjacent_vertical_values(row,col)
@@ -409,19 +413,17 @@ class PipeMania(Problem):
                 return False
         return True
 
-
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
         # TODO
         pass
 
-    # TODO: outros metodos da classe
-
-
 if __name__ == "__main__":
     board = Board.parse_instance()
-    # TODO:
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
+    problem = PipeMania(board)
+    result = depth_first_tree_search(problem)
+    if (result == None):
+        print("Fucky wucky")
+        exit(1)
+    print(result.state.board)
     pass

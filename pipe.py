@@ -72,6 +72,10 @@ ROTATIONS_OF = [
 PIECE_IDX = 0
 MOVABLE_IDX = 1
 
+# == Mobility ==
+MOVABLE = 0
+IMOVABLE = 1
+
 
 
 # [=== Code ===]
@@ -107,15 +111,15 @@ class Board:
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
-        return self.board[row, col, MOVABLE_IDX] == 0
+        return self.board[row, col, MOVABLE_IDX] == MOVABLE
     
-    def set_movable(self, row: int, col: int, val: bool) -> None:
-        """Define a peça como movível se True e imovível se False"""
+    def set_movable(self, row: int, col: int, val: int) -> None:
+        """Define a peça como movível se 0 e imovível se 1"""
         self.board[row, col, MOVABLE_IDX] = val
     
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
-        self.board[row, col, MOVABLE_IDX] = False
+        self.board[row, col, MOVABLE_IDX] = IMOVABLE
 
     def adjacent_vertical_values(self, row: int, col: int) -> "tuple[int, int]":
         """Devolve os valores imediatamente acima e abaixo,
@@ -147,7 +151,7 @@ class Board:
         """Guarda uma linha do board"""
         for i in range(len(line)):
             self.set_value(line_num, i, str_to_piece(line[i]))
-            self.set_movable(line_num, i, True)
+            self.set_movable(line_num, i, MOVABLE)
 
     def __check_connects_immovable(self, row: int, col: int, val: int) -> bool:
         """Retorna False se a peça estiver definitivamente numa posição errada"""
@@ -185,20 +189,17 @@ class Board:
 
         if (row != 0 and self.get_movable(row - 1, col)):
             to_check.append((row - 1, col))
-            self.set_moved(row - 1, col)
         if (row != self.size - 1 and self.get_movable(row + 1, col)):
             to_check.append((row + 1, col))
-            self.set_moved(row + 1, col)
         if (col != 0 and self.get_movable(row, col - 1)):
             to_check.append((row, col - 1))
-            self.set_moved(row, col - 1)
         if (col != self.size - 1 and self.get_movable(row, col + 1)):
             to_check.append((row, col + 1))
-            self.set_moved(row, col + 1)
         while (len(to_check)):
             x, y = to_check.pop()
+            if (not self.get_movable(x, y)): #TODO: Pensar melhor nisto
+                continue
             piece = self.get_value(x, y)
-            self.set_movable(x, y, True)
             valid = []
             if (self.__check_connects_immovable(x, y, piece)):
                 valid.append(piece)
@@ -420,7 +421,7 @@ if __name__ == "__main__":
     problem = PipeMania(board)
     result = depth_first_tree_search(problem)
     if (result == None):
-        print("Fucky wucky")
+        print("No solution found")
         exit(1)
     print(result.state.board)
     pass

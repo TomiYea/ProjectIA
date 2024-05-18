@@ -92,10 +92,10 @@ class Board:
         self.board = np.ndarray((size, size, 2), np.int32)
         self.size = size
 
-    @staticmethod
-    def deep_copy(old: 'Board') -> 'Board':
-        ret = Board(old)
-        ret.board = old.board.copy()
+    def deep_copy(self) -> 'Board':
+        ret = Board(self.size)
+        ret.board = self.board.copy()
+        return ret
 
     def get_value(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -368,8 +368,7 @@ class PipeMania(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        #TODO
-        copy = Board(state.board)
+        copy = state.board.deep_copy()
         copy.set_value(action[0], action[1], action[2])
         copy.set_moved(action[0], action[1])
         return PipeManiaState(copy)

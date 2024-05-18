@@ -85,17 +85,17 @@ def str_to_piece(name : str) -> int:
 class Board:
     """Representação interna de um tabuleiro de PipeMania."""
 
-    board : "np.ndarray[int]"
+    board : np.ndarray
     size : int
     
-    def __init__(self, size):
-        self.board = np.ndarray((size, size, 2))
+    def __init__(self, size: int):
+        self.board = np.ndarray((size, size, 2), np.int32)
         self.size = size
 
     @staticmethod
     def deep_copy(old: 'Board') -> 'Board':
         ret = Board(old)
-        ret.board = np.copy(old.board)
+        ret.board = old.board.copy()
 
     def get_value(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -137,7 +137,7 @@ class Board:
             left = PIECE_NONE
         else:
             left = self.get_value(row, col - 1)
-        if row == self.size-1:
+        if col == self.size-1:
             right = PIECE_NONE
         else:
             right = self.get_value(row, col + 1)
@@ -159,7 +159,7 @@ class Board:
             if (CONNECTS_UP.__contains__(val)):
                 return False
         if (down != PIECE_NONE):
-            if (not self.get_movable(row + 1, col) and  CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
+            if (not self.get_movable(row + 1, col) and CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
                 return False
         else:
             if (CONNECTS_DOWN.__contains__(val)):
@@ -192,7 +192,7 @@ class Board:
         if (col != 0 and self.get_movable(row, col - 1)):
             to_check.append((row, col - 1))
             self.set_moved(row, col - 1)
-        if (row != self.size - 1 and self.get_movable(row, col + 1)):
+        if (col != self.size - 1 and self.get_movable(row, col + 1)):
             to_check.append((row, col + 1))
             self.set_moved(row, col + 1)
         while (len(to_check)):
@@ -379,10 +379,10 @@ class PipeMania(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
         
-        checker = [[]]
+        flow_map = np.ndarray((state.board.size, state.board.size))
         for row in range(state.board.size - 1):
             for col in range(state.board.size - 1):
-                checker[row][col] = 0
+                flow_map[row, col] = 0
                 val = state.board.get_value(row,col)
                 (up, down) = state.board.adjacent_vertical_values(row,col)
                 if (CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
@@ -396,22 +396,19 @@ class PipeMania(Problem):
                     return False
                 
         def flow(row, col):
-            checker[row][col] = 1
+            flow_map[row, col] = 1
             valu = state.board.get_value(row, col)
-            if (CONNECTS_UP.__contains__(valu) and checker[row-1][col] == 0):
+            if (CONNECTS_UP.__contains__(valu) and flow_map[row-1, col] == 0):
                 flow(row-1, col)
-            if (CONNECTS_DOWN.__contains__(valu) and checker[row+1][col] == 0):
+            if (CONNECTS_DOWN.__contains__(valu) and flow_map[row+1, col] == 0):
                 flow(row+1, col)
-            if (CONNECTS_LEFT.__contains__(valu) and checker[row][col-1] == 0):
+            if (CONNECTS_LEFT.__contains__(valu) and flow_map[row, col-1] == 0):
                 flow(row, col-1)
-            if (CONNECTS_RIGHT.__contains__(valu) and checker[row][col+1] == 0):
+            if (CONNECTS_RIGHT.__contains__(valu) and flow_map[row, col+1] == 0):
                 flow(row, col+1)
 
         flow(0, 0)
-        for obama in checker:
-            if (obama.__contains__(0)):
-                return False
-        return True
+        return np.all(flow_map)
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -420,6 +417,7 @@ class PipeMania(Problem):
 
 if __name__ == "__main__":
     board = Board.parse_instance()
+    board.setup()
     problem = PipeMania(board)
     result = depth_first_tree_search(problem)
     if (result == None):

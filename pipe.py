@@ -34,16 +34,15 @@ PIECE_FC = 11
 PIECE_FE = 12
 PIECE_LH = 13
 PIECE_LV = 14
-PIECE_MAX = 14
 
-PIECE_TO_STR = ["NONE", "VB", "VD", "VC", "VE", "FB", "FD", "FC", "FE", "BB", "BD", "BC", "BE", "LH", "LV"]
+PIECE_TO_STR = ["NONE", "BB", "BD", "BC", "BE", "VB", "VD", "VC", "VE", "FB", "FD", "FC", "FE", "LH", "LV"]
 STR_TO_PIECE = { "LH": PIECE_LH, "LV": PIECE_LV, "VB": PIECE_VB, "VD": PIECE_VD, "VC": PIECE_VC, "VE": PIECE_VE, "BB": PIECE_BB, "BD": PIECE_BD, "BC": PIECE_BC, "BE": PIECE_BE, "FB": PIECE_FB, "FD": PIECE_FD, "FC": PIECE_FC, "FE": PIECE_FE }
 
 # == Connections ==
-CONNECTS_UP = [PIECE_FC, PIECE_BC, PIECE_BE, PIECE_BD, PIECE_VC, PIECE_VD, PIECE_LV]
-CONNECTS_DOWN = [PIECE_FB, PIECE_BB, PIECE_BE, PIECE_BD, PIECE_VB, PIECE_VE, PIECE_LV]
-CONNECTS_LEFT = [PIECE_FE, PIECE_BC, PIECE_BE, PIECE_BB, PIECE_VC, PIECE_VE, PIECE_LH]
-CONNECTS_RIGHT = [PIECE_FD, PIECE_BC, PIECE_BB, PIECE_BD, PIECE_VB, PIECE_VD, PIECE_LH]
+CONNECTS_UP = { PIECE_FC, PIECE_BC, PIECE_BE, PIECE_BD, PIECE_VC, PIECE_VD, PIECE_LV }
+CONNECTS_DOWN = { PIECE_FB, PIECE_BB, PIECE_BE, PIECE_BD, PIECE_VB, PIECE_VE, PIECE_LV }
+CONNECTS_LEFT = { PIECE_FE, PIECE_BC, PIECE_BE, PIECE_BB, PIECE_VC, PIECE_VE, PIECE_LH }
+CONNECTS_RIGHT = { PIECE_FD, PIECE_BC, PIECE_BB, PIECE_BD, PIECE_VB, PIECE_VD, PIECE_LH }
 
 # == Rotations ==
 ROTATIONS_OF = [
@@ -318,18 +317,28 @@ class Board:
             ret[:-1]
         return ret[1:]
 
+    def __raw_str__(self) -> str:
+        ret = ""
+        for row in range(self.size):
+            ret += "\n"
+            for col in range(self.size):
+                ret += str(self.get_value(row, col))
+                ret += "\t"
+            ret[:-1]
+        return ret[1:]
+
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
         e retorna uma instância da classe Board."""
         from sys import stdin
-        line = stdin.readline().split("\t")
+        line = stdin.readline()[:-1].split("\t")
         size = len(line)
         board = Board(size)
         board.parse_line(line, 0)
         for obama in range(1, size):
-            line = stdin.readline().split("\t")
-            board.parse_line(line, obama - 1)
+            line = stdin.readline()[:-1].split("\t")
+            board.parse_line(line, obama)
         return board
 
 class PipeManiaState:
@@ -415,6 +424,16 @@ class PipeMania(Problem):
         # TODO
         pass
 
+#Debugging
+#board = Board.parse_instance()
+#print("Parsed:")
+#print(board.__raw_str__())
+#print(board)
+#board.setup()
+#print("Setup:")
+#print(board)
+#exit(0)
+
 if __name__ == "__main__":
     board = Board.parse_instance()
     board.setup()
@@ -424,4 +443,3 @@ if __name__ == "__main__":
         print("No solution found")
         exit(1)
     print(result.state.board)
-    pass

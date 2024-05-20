@@ -149,7 +149,7 @@ class Board:
     def parse_line(self, line: "list[str]", line_num: int) -> None:
         """Guarda uma linha do board"""
         for i in range(len(line)):
-            self.set_value(line_num, i, str_to_piece(line[i]))
+            self.set_value(line_num, i, str_to_piece(line[i].rstrip()))
             self.set_movable(line_num, i, MOVABLE)
 
     def __check_connects_immovable(self, row: int, col: int, val: int) -> bool:
@@ -336,12 +336,12 @@ class Board:
         """Lê o test do standard input (stdin) que é passado como argumento
         e retorna uma instância da classe Board."""
         from sys import stdin
-        line = stdin.readline()[:-1].split("\t")
+        line = stdin.readline().split("\t")
         size = len(line)
         board = Board(size)
         board.parse_line(line, 0)
         for obama in range(1, size):
-            line = stdin.readline()[:-1].split("\t")
+            line = stdin.readline().split("\t")
             board.parse_line(line, obama)
         return board
 

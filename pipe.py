@@ -149,7 +149,7 @@ class Board:
     def parse_line(self, line: "list[str]", line_num: int) -> None:
         """Guarda uma linha do board"""
         for i in range(len(line)):
-            self.set_value(line_num, i, str_to_piece(line[i].rstrip()))
+            self.set_value(line_num, i, str_to_piece(line[i]))
             self.set_movable(line_num, i, MOVABLE)
 
     def __check_connects_immovable(self, row: int, col: int, val: int) -> bool:
@@ -331,17 +331,20 @@ class Board:
             ret = ret[:-1]
         return ret[1:]
 
+    def dump(self) -> None:
+        print(self.board)
+        print(self.size)
+
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
         e retorna uma instância da classe Board."""
-        from sys import stdin
-        line = stdin.readline().split("\t")
+        line = input().split("\t")
         size = len(line)
         board = Board(size)
         board.parse_line(line, 0)
         for obama in range(1, size):
-            line = stdin.readline().split("\t")
+            line = input().split("\t")
             board.parse_line(line, obama)
         return board
 
@@ -393,8 +396,8 @@ class PipeMania(Problem):
         estão preenchidas de acordo com as regras do problema."""
         
         flow_map = np.ndarray((state.board.size, state.board.size))
-        for row in range(state.board.size - 1):
-            for col in range(state.board.size - 1):
+        for row in range(state.board.size):
+            for col in range(state.board.size):
                 flow_map[row, col] = 0
                 val = state.board.get_value(row,col)
                 (up, down) = state.board.adjacent_vertical_values(row,col)
@@ -431,9 +434,11 @@ class PipeMania(Problem):
 #Debugging
 #board = Board.parse_instance()
 #print("Parsed:")
+##board.dump()
 #print(board)
 #print(board.lock_str())
 #board.setup()
+##board.dump()
 #print("Setup:")
 #print(board)
 #print(board.lock_str())
@@ -446,5 +451,5 @@ if __name__ == "__main__":
     result = depth_first_tree_search(problem)
     if (result == None):
         print("No solution found")
-        exit(0)
-    print(result.state.board)
+    else:
+        print(result.state.board)

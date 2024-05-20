@@ -6,7 +6,7 @@
 # 106211 Tomás Dias Monteiro
 # 106196 Diogo Cruz Diniz
 
-import numpy as np
+import numpy as np # type: ignore
 from search import (
     Problem,
     Node,
@@ -94,10 +94,13 @@ class Board:
     def __init__(self, size: int):
         self.board = np.ndarray((size, size, 2), np.int32)
         self.size = size
+        self.rest : list[tuple[int, int]] = []
 
     def deep_copy(self) -> 'Board':
         ret = Board(self.size)
         ret.board = self.board.copy()
+        for obama in self.rest:
+            ret.rest.append(obama)
         return ret
 
     def get_value(self, row: int, col: int) -> int:
@@ -119,6 +122,26 @@ class Board:
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
         self.board[row, col, MOVABLE_IDX] = IMOVABLE
+
+    def adjacent_values(self, row: int, col: int) -> "tuple[int, int, int, int]":
+        """Devolve os valores das peças adjacentes"""
+        if row == 0:
+            up = PIECE_NONE
+        else:
+            up = self.get_value(row - 1, col)
+        if row == self.size-1:
+            down = PIECE_NONE
+        else:
+            down = self.get_value(row + 1, col)
+        if col == 0:
+            left = PIECE_NONE
+        else:
+            left = self.get_value(row, col - 1)
+        if col == self.size-1:
+            right = PIECE_NONE
+        else:
+            right = self.get_value(row, col + 1)
+        return(up, down, left, right)
 
     def adjacent_vertical_values(self, row: int, col: int) -> "tuple[int, int]":
         """Devolve os valores imediatamente acima e abaixo,
@@ -152,9 +175,18 @@ class Board:
             self.set_value(line_num, i, str_to_piece(line[i]))
             self.set_movable(line_num, i, MOVABLE)
 
-    def __check_connects_immovable(self, row: int, col: int, val: int) -> bool:
+    def check_connects_immovable(self, row: int, col: int, val: int) -> bool:
         """Retorna False se a peça estiver definitivamente numa posição errada"""
-        (up, down) = self.adjacent_vertical_values(row,col)
+        (up, down, left, right) = self.adjacent_values(row,col)
+        if (val >= PIECE_FB and val <= PIECE_FE):
+            if (val == PIECE_FB and down >= PIECE_FB and down <= PIECE_FE):
+                return False
+            if (val == PIECE_FD and right >= PIECE_FB and right <= PIECE_FE):
+                return False
+            if (val == PIECE_FC and up >= PIECE_FB and up <= PIECE_FE):
+                return False
+            if (val == PIECE_FE and left >= PIECE_FB and left <= PIECE_FE):
+                return False
         if (up != PIECE_NONE):
             if (not self.get_movable(row - 1, col) and CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
                 return False
@@ -165,7 +197,6 @@ class Board:
                 return False
         elif (CONNECTS_DOWN.__contains__(val)):
             return False
-        (left, right) = self.adjacent_horizontal_values(row,col)
         if (left != PIECE_NONE):
             if (not self.get_movable(row, col - 1) and CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
                 return False
@@ -196,11 +227,11 @@ class Board:
                 continue
             piece = self.get_value(x, y)
             valid = []
-            if (self.__check_connects_immovable(x, y, piece)):
+            if (self.check_connects_immovable(x, y, piece)):
                 valid.append(piece)
 
             for rotation in ROTATIONS_OF[piece]:
-                if (self.__check_connects_immovable(x, y, rotation)):
+                if (self.check_connects_immovable(x, y, rotation)):
                     valid.append(rotation)
 
             if (len(valid) == 1):
@@ -300,7 +331,11 @@ class Board:
 
         self.__setup_corners()
         self.__setup_edges()
-        
+        for row in range(self.size):
+            for col in range(self.size):
+                if (self.get_movable(row, col)):
+                    self.rest.append((row, col))
+       
     def __str__(self) -> str:
         ret = ""
         for row in range(self.size):
@@ -370,14 +405,15 @@ class PipeMania(Problem):
     def actions(self, state: PipeManiaState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        actions = []
-        for row in range(state.board.size):
-            for col in range(state.board.size):
-                if (state.board.get_movable(row, col) == IMOVABLE):
-                    continue
-                val = state.board.get_value(row, col)
-                for pos in ROTATIONS_OF[val]:
-                    actions.append((row, col, pos))
+        actions : list[tuple[int, int, int]] = []
+        if (len(state.board.rest)):
+            x, y = state.board.rest.pop()
+            val = state.board.get_value(x, y)
+            if (state.board.check_connects_immovable(x, y, val)):
+                actions.append((x, y, val))
+            for pos in ROTATIONS_OF[val]:
+                if (state.board.check_connects_immovable(x, y, pos)):
+                    actions.append((x, y, pos))
         return actions
 
     def result(self, state: PipeManiaState, action: "tuple[int, int, int]") -> PipeManiaState:
@@ -400,30 +436,30 @@ class PipeMania(Problem):
             for col in range(state.board.size):
                 flow_map[row, col] = 0
                 val = state.board.get_value(row,col)
-                (up, down) = state.board.adjacent_vertical_values(row,col)
+                (up, down, left, right) = state.board.adjacent_values(row, col)
                 if (CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
                     return False
                 if (CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
                     return False
-                (left, right) = state.board.adjacent_horizontal_values(row,col)
                 if (CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
                     return False
                 if (CONNECTS_RIGHT.__contains__(val) != CONNECTS_LEFT.__contains__(right)):
                     return False
-                
-        def flow(row, col):
-            flow_map[row, col] = 1
-            valu = state.board.get_value(row, col)
-            if (CONNECTS_UP.__contains__(valu) and flow_map[row-1, col] == 0):
-                flow(row-1, col)
-            if (CONNECTS_DOWN.__contains__(valu) and flow_map[row+1, col] == 0):
-                flow(row+1, col)
-            if (CONNECTS_LEFT.__contains__(valu) and flow_map[row, col-1] == 0):
-                flow(row, col-1)
-            if (CONNECTS_RIGHT.__contains__(valu) and flow_map[row, col+1] == 0):
-                flow(row, col+1)
 
-        flow(0, 0)
+        flow : list[tuple[int, int]] = [(0, 0)]
+        while (len(flow)):
+            x, y = flow.pop()
+            flow_map[x, y] = 1
+            valu = state.board.get_value(x, y)
+            if (CONNECTS_UP.__contains__(valu) and flow_map[x-1, y] == 0):
+                flow.append((x-1, y))
+            if (CONNECTS_DOWN.__contains__(valu) and flow_map[x+1, y] == 0):
+                flow.append((x+1, y))
+            if (CONNECTS_LEFT.__contains__(valu) and flow_map[x, y-1] == 0):
+                flow.append((x, y-1))
+            if (CONNECTS_RIGHT.__contains__(valu) and flow_map[x, y+1] == 0):
+                flow.append((x, y+1))
+
         return np.all(flow_map)
 
     def h(self, node: Node):

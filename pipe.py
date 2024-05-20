@@ -314,7 +314,7 @@ class Board:
             for col in range(self.size):
                 ret += piece_to_str(self.get_value(row, col))
                 ret += "\t"
-            ret[:-1]
+            ret = ret[:-1]
         return ret[1:]
 
     def __raw_str__(self) -> str:
@@ -441,5 +441,5 @@ if __name__ == "__main__":
     result = depth_first_tree_search(problem)
     if (result == None):
         print("No solution found")
-        exit(1)
+        exit(0)
     print(result.state.board)

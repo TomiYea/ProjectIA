@@ -5,12 +5,11 @@ import sys
 def visualizer():
     with sys.stdin as f:
         #Transforms the input into a grid for example, [["FC","VC"],["VC","FC"]]
-        grid = [line.strip().split("  ") for line in f] 
+        grid = [line.strip().split("\t") for line in f] 
 
         # Assuming the images are in images directory and named 'FC.png', 'VC.png', etc.
         path_to_images = 'images/'
 
-     
         fig, axs = plt.subplots(len(grid), len(grid[0]), figsize=(5, 5)) 
 
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)

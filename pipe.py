@@ -373,7 +373,7 @@ class PipeMania(Problem):
         actions = []
         for row in range(state.board.size):
             for col in range(state.board.size):
-                if (not state.board.get_movable(row, col)):
+                if (state.board.get_movable(row, col) == IMOVABLE):
                     continue
                 val = state.board.get_value(row, col)
                 for pos in ROTATIONS_OF[val]:
@@ -430,19 +430,6 @@ class PipeMania(Problem):
         """Função heuristica utilizada para a procura A*."""
         # TODO
         pass
-
-#Debugging
-#board = Board.parse_instance()
-#print("Parsed:")
-##board.dump()
-#print(board)
-#print(board.lock_str())
-#board.setup()
-##board.dump()
-#print("Setup:")
-#print(board)
-#print(board.lock_str())
-#exit(0)
 
 if __name__ == "__main__":
     board = Board.parse_instance()

@@ -158,28 +158,24 @@ class Board:
         if (up != PIECE_NONE):
             if (not self.get_movable(row - 1, col) and CONNECTS_UP.__contains__(val) != CONNECTS_DOWN.__contains__(up)):
                 return False
-        else:
-            if (CONNECTS_UP.__contains__(val)):
-                return False
+        elif (CONNECTS_UP.__contains__(val)):
+            return False
         if (down != PIECE_NONE):
             if (not self.get_movable(row + 1, col) and CONNECTS_DOWN.__contains__(val) != CONNECTS_UP.__contains__(down)):
                 return False
-        else:
-            if (CONNECTS_DOWN.__contains__(val)):
-                return False
+        elif (CONNECTS_DOWN.__contains__(val)):
+            return False
         (left, right) = self.adjacent_horizontal_values(row,col)
         if (left != PIECE_NONE):
             if (not self.get_movable(row, col - 1) and CONNECTS_LEFT.__contains__(val) != CONNECTS_RIGHT.__contains__(left)):
                 return False
-        else:
-            if (CONNECTS_LEFT.__contains__(val)):
-                return False
+        elif (CONNECTS_LEFT.__contains__(val)):
+            return False
         if (right != PIECE_NONE):
             if (not self.get_movable(row, col + 1) and CONNECTS_RIGHT.__contains__(val) != CONNECTS_LEFT.__contains__(right)):
                 return False
-        else:
-            if (CONNECTS_RIGHT.__contains__(val)):
-                return False
+        elif (CONNECTS_RIGHT.__contains__(val)):
+            return False
         return True
 
     def __check_adjacents(self, row: int, col: int) -> None:
@@ -194,7 +190,7 @@ class Board:
             to_check.append((row, col - 1))
         if (col != self.size - 1 and self.get_movable(row, col + 1)):
             to_check.append((row, col + 1))
-        while (len(to_check)):
+        while (to_check):
             x, y = to_check.pop()
             if (not self.get_movable(x, y)): #TODO: Pensar melhor nisto
                 continue
@@ -205,7 +201,7 @@ class Board:
 
             for rotation in ROTATIONS_OF[piece]:
                 if (self.__check_connects_immovable(x, y, rotation)):
-                    valid.append(piece)
+                    valid.append(rotation)
 
             if (len(valid) == 1):
                 self.set_value(x, y, valid[0])
@@ -213,19 +209,17 @@ class Board:
                 # Add unmoved neighbours
                 if (x != 0 and self.get_movable(x - 1, y)):
                     to_check.append((x - 1, y))
-                    self.set_moved(x - 1, y)
                 if (x != self.size - 1 and self.get_movable(x + 1, y)):
                     to_check.append((x + 1, y))
-                    self.set_moved(x + 1, y)
                 if (y != 0 and self.get_movable(x, y - 1)):
                     to_check.append((x, y - 1))
-                    self.set_moved(x, y - 1)
                 if (y != self.size - 1 and self.get_movable(x, y + 1)):
                     to_check.append((x, y + 1))
-                    self.set_moved(x, y + 1)
 
     def __setup_corners(self) -> None:
         # == Check valid corners if they are V pieces ==
+        # Corners can never be B pieces, so <= VE is enough
+
         # Top left corner
         canto = self.get_value(0, 0)
         if (canto <= PIECE_VE):
@@ -254,14 +248,7 @@ class Board:
             self.set_moved(self.size - 1, self.size - 1)
             self.__check_adjacents(self.size - 1, self.size - 1)
 
-    def setup(self) -> None:
-        """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
-        nessa posição."""
-
-        self.__setup_corners()
-        
-        # == Check non-corner edges if they are B or L pieces ==
-        # == At the same time, build list to check later ==
+    def __setup_edges(self) -> None:
         for i in range(1, self.size - 1):
             # Top edge
             piece = self.get_value(0, i)
@@ -307,6 +294,13 @@ class Board:
                 self.set_moved(i, self.size - 1)
                 self.__check_adjacents(i, self.size - 2)
 
+    def setup(self) -> None:
+        """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as
+        nessa posição."""
+
+        self.__setup_corners()
+        self.__setup_edges()
+        
     def __str__(self) -> str:
         ret = ""
         for row in range(self.size):
@@ -317,14 +311,24 @@ class Board:
             ret = ret[:-1]
         return ret[1:]
 
-    def __raw_str__(self) -> str:
+    def raw_str(self) -> str:
         ret = ""
         for row in range(self.size):
             ret += "\n"
             for col in range(self.size):
                 ret += str(self.get_value(row, col))
                 ret += "\t"
-            ret[:-1]
+            ret = ret[:-1]
+        return ret[1:]
+
+    def lock_str(self) -> str:
+        ret = ""
+        for row in range(self.size):
+            ret += "\n"
+            for col in range(self.size):
+                ret += str(1 - self.get_movable(row, col))
+                ret += "\t"
+            ret = ret[:-1]
         return ret[1:]
 
     @staticmethod
@@ -427,11 +431,12 @@ class PipeMania(Problem):
 #Debugging
 #board = Board.parse_instance()
 #print("Parsed:")
-#print(board.__raw_str__())
 #print(board)
+#print(board.lock_str())
 #board.setup()
 #print("Setup:")
 #print(board)
+#print(board.lock_str())
 #exit(0)
 
 if __name__ == "__main__":

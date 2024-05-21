@@ -77,6 +77,9 @@ IMOVABLE = 1
 
 
 
+# [=== Drawing ===]
+dumpFile = None
+
 # [=== Code ===]
 
 def piece_to_str(piece : int) -> str:
@@ -110,6 +113,8 @@ class Board:
     def set_value(self, row: int, col: int, val: int) -> None:
         """Define o valor na respetiva posição do tabuleiro"""
         self.board[row, col, PIECE_IDX] = val
+        #print("set_value("+str(row)+", "+str(col)+", "+piece_to_str(val)+")", file=dumpFile)
+        #print(self.full_str(), file=dumpFile)
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
@@ -118,10 +123,12 @@ class Board:
     def set_movable(self, row: int, col: int, val: int) -> None:
         """Define a peça como movível se 0 e imovível se 1"""
         self.board[row, col, MOVABLE_IDX] = val
+        #print("set_movable("+str(row)+", "+str(col)+", "+str(val)+")", file=dumpFile)
+        #print(self.full_str(), file=dumpFile)
     
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
-        self.board[row, col, MOVABLE_IDX] = IMOVABLE
+        self.set_movable(row, col, IMOVABLE)
 
     def adjacent_values(self, row: int, col: int) -> "tuple[int, int, int, int]":
         """Devolve os valores das peças adjacentes"""
@@ -143,37 +150,11 @@ class Board:
             right = self.get_value(row, col + 1)
         return(up, down, left, right)
 
-    def adjacent_vertical_values(self, row: int, col: int) -> "tuple[int, int]":
-        """Devolve os valores imediatamente acima e abaixo,
-        respectivamente."""
-        if row == 0:
-            up = PIECE_NONE
-        else:
-            up = self.get_value(row - 1, col)
-        if row == self.size-1:
-            down = PIECE_NONE
-        else:
-            down = self.get_value(row + 1, col)
-        return (up, down)
-
-    def adjacent_horizontal_values(self, row: int, col: int) -> "tuple[int, int]":
-        """Devolve os valores imediatamente à esquerda e à direita,
-        respectivamente."""
-        if col == 0:
-            left = PIECE_NONE
-        else:
-            left = self.get_value(row, col - 1)
-        if col == self.size-1:
-            right = PIECE_NONE
-        else:
-            right = self.get_value(row, col + 1)
-        return (left, right)
-    
     def parse_line(self, line: "list[str]", line_num: int) -> None:
         """Guarda uma linha do board"""
         for i in range(len(line)):
-            self.set_value(line_num, i, str_to_piece(line[i]))
-            self.set_movable(line_num, i, MOVABLE)
+            self.board[line_num, i, PIECE_IDX] = str_to_piece(line[i])
+            self.board[line_num, i, MOVABLE_IDX] = MOVABLE
 
     def check_connects_immovable(self, row: int, col: int, val: int) -> bool:
         """Retorna False se a peça estiver definitivamente numa posição errada"""
@@ -252,6 +233,7 @@ class Board:
         # Corners can never be B pieces, so <= VE is enough
 
         # Top left corner
+        #print("setup_corners top left", file=dumpFile)
         canto = self.get_value(0, 0)
         if (canto <= PIECE_VE):
             self.set_value(0, 0, PIECE_VB)
@@ -259,6 +241,7 @@ class Board:
             self.__check_adjacents(0, 0)
 
         # Top right corner
+        #print("setup_corners top right", file=dumpFile)
         canto = self.get_value(0, self.size - 1)
         if (canto <= PIECE_VE):
             self.set_value(0, self.size - 1, PIECE_VE)
@@ -266,6 +249,7 @@ class Board:
             self.__check_adjacents(0, self.size - 1)
 
         # Bottom left corner
+        #print("setup_corners bottom left", file=dumpFile)
         canto = self.get_value(self.size - 1, 0)
         if (canto <= PIECE_VE):
             self.set_value(self.size - 1, 0, PIECE_VD)
@@ -273,6 +257,7 @@ class Board:
             self.__check_adjacents(self.size - 1, 0)
 
         #Bottom right corner
+        #print("setup_corners bottom right", file=dumpFile)
         canto = self.get_value(self.size - 1, self.size - 1)
         if (canto <= PIECE_VE):
             self.set_value(self.size - 1, self.size - 1, PIECE_VC)
@@ -280,6 +265,7 @@ class Board:
             self.__check_adjacents(self.size - 1, self.size - 1)
 
     def __setup_edges(self) -> None:
+        #print("setup_edges", file=dumpFile)
         for i in range(1, self.size - 1):
             # Top edge
             piece = self.get_value(0, i)
@@ -358,6 +344,22 @@ class Board:
 
     def lock_str(self) -> str:
         ret = ""
+        for row in range(self.size):
+            ret += "\n"
+            for col in range(self.size):
+                ret += str(1 - self.get_movable(row, col))
+                ret += "\t"
+            ret = ret[:-1]
+        return ret[1:]
+
+    def full_str(self) -> str:
+        ret = ""
+        for row in range(self.size):
+            ret += "\n"
+            for col in range(self.size):
+                ret += piece_to_str(self.get_value(row, col))
+                ret += "\t"
+            ret = ret[:-1]
         for row in range(self.size):
             ret += "\n"
             for col in range(self.size):
@@ -468,7 +470,9 @@ class PipeMania(Problem):
         pass
 
 if __name__ == "__main__":
+    #dumpFile = open("dump.txt", "wt")
     board = Board.parse_instance()
+    #print(board.full_str(), file=dumpFile)
     board.setup()
     problem = PipeMania(board)
     result = depth_first_tree_search(problem)
@@ -476,3 +480,4 @@ if __name__ == "__main__":
         print("No solution found")
     else:
         print(result.state.board)
+    #dumpFile.close()

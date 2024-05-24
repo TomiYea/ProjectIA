@@ -77,6 +77,9 @@ IMOVABLE = 1
 
 
 
+# [=== Drawing ===]
+dumpFile = None
+
 # [=== Code ===]
 
 def piece_to_str(piece : int) -> str:
@@ -110,6 +113,11 @@ class Board:
     def set_value(self, row: int, col: int, val: int) -> None:
         """Define o valor na respetiva posição do tabuleiro"""
         self.board[row, col, PIECE_IDX] = val
+        print("1", file=dumpFile)
+        for l in range(self.size):
+            for c in range(self.size):
+                print(str(self.get_value(l, c))+","+str(1-self.get_movable(l, c))+","+str(0 if l == row and c == col else 1), end="\t", file=dumpFile)
+        print("", file=dumpFile)
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
@@ -118,10 +126,12 @@ class Board:
     def set_movable(self, row: int, col: int, val: int) -> None:
         """Define a peça como movível se 0 e imovível se 1"""
         self.board[row, col, MOVABLE_IDX] = val
+        print("2", file=dumpFile)
+        print(self.full_str(), file=dumpFile)
     
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
-        self.board[row, col, MOVABLE_IDX] = IMOVABLE
+        self.set_movable(row, col, IMOVABLE)
 
     def adjacent_values(self, row: int, col: int) -> "tuple[int, int, int, int]":
         """Devolve os valores das peças adjacentes"""
@@ -143,37 +153,11 @@ class Board:
             right = self.get_value(row, col + 1)
         return(up, down, left, right)
 
-    def adjacent_vertical_values(self, row: int, col: int) -> "tuple[int, int]":
-        """Devolve os valores imediatamente acima e abaixo,
-        respectivamente."""
-        if row == 0:
-            up = PIECE_NONE
-        else:
-            up = self.get_value(row - 1, col)
-        if row == self.size-1:
-            down = PIECE_NONE
-        else:
-            down = self.get_value(row + 1, col)
-        return (up, down)
-
-    def adjacent_horizontal_values(self, row: int, col: int) -> "tuple[int, int]":
-        """Devolve os valores imediatamente à esquerda e à direita,
-        respectivamente."""
-        if col == 0:
-            left = PIECE_NONE
-        else:
-            left = self.get_value(row, col - 1)
-        if col == self.size-1:
-            right = PIECE_NONE
-        else:
-            right = self.get_value(row, col + 1)
-        return (left, right)
-    
     def parse_line(self, line: "list[str]", line_num: int) -> None:
         """Guarda uma linha do board"""
         for i in range(len(line)):
-            self.set_value(line_num, i, str_to_piece(line[i]))
-            self.set_movable(line_num, i, MOVABLE)
+            self.board[line_num, i, PIECE_IDX] = str_to_piece(line[i])
+            self.board[line_num, i, MOVABLE_IDX] = MOVABLE
 
     def check_connects_immovable(self, row: int, col: int, val: int) -> bool:
         """Retorna False se a peça estiver definitivamente numa posição errada"""
@@ -222,6 +206,11 @@ class Board:
         if (col != self.size - 1 and self.get_movable(row, col + 1)):
             to_check.append((row, col + 1))
         while (to_check):
+            print("3", file=dumpFile)
+            for l in range(self.size):
+                for c in range(self.size):
+                    print(str(self.get_value(l, c))+","+str(1-self.get_movable(l, c))+","+str(-1 if (l,c) not in to_check else (len(to_check) - 1 - to_check.index((l,c)))), end="\t", file=dumpFile)
+            print("", file=dumpFile)
             x, y = to_check.pop()
             if (not self.get_movable(x, y)): #TODO: Pensar melhor nisto
                 continue
@@ -366,9 +355,17 @@ class Board:
             ret = ret[:-1]
         return ret[1:]
 
-    def dump(self) -> None:
-        print(self.board)
-        print(self.size)
+    def full_str(self) -> str:
+        ret = ""
+        for row in range(self.size):
+            ret += "\n"
+            for col in range(self.size):
+                ret += str(self.get_value(row, col))
+                ret += ","
+                ret += str(1 - self.get_movable(row, col))
+                ret += "\t"
+            ret = ret[:-1]
+        return ret[1:]
 
     @staticmethod
     def parse_instance():
@@ -468,6 +465,7 @@ class PipeMania(Problem):
         pass
 
 if __name__ == "__main__":
+    dumpFile = open("dump.txt", "wt")
     board = Board.parse_instance()
     board.setup()
     problem = PipeMania(board)
@@ -476,3 +474,5 @@ if __name__ == "__main__":
         print("No solution found")
     else:
         print(result.state.board)
+    print("-1", file=dumpFile)
+    dumpFile.close()

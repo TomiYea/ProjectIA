@@ -286,44 +286,44 @@ class Board:
             if (piece <= PIECE_BE):
                 self.set_value(0, i, PIECE_BB)
                 self.set_moved(0, i)
-                self.__check_adjacents(1, i)
+                self.__check_adjacents(0, i)
             elif (piece >= PIECE_LH):
                 self.set_value(0, i, PIECE_LH)
                 self.set_moved(0, i)
-                self.__check_adjacents(1, i)
+                self.__check_adjacents(0, i)
             
             # Bottom edge
             piece = self.get_value(self.size - 1, i)
             if (piece <= PIECE_BE):
                 self.set_value(self.size - 1, i, PIECE_BC)
                 self.set_moved(self.size - 1, i)
-                self.__check_adjacents(self.size - 2, i)
+                self.__check_adjacents(self.size - 1, i)
             elif (piece >= PIECE_LH):
                 self.set_value(self.size - 1, i, PIECE_LH)
                 self.set_moved(self.size - 1, i)
-                self.__check_adjacents(self.size - 2, i)
+                self.__check_adjacents(self.size - 1, i)
 
             # Left edge
             piece = self.get_value(i, 0)
             if (piece <= PIECE_BE):
                 self.set_value(i, 0, PIECE_BD)
                 self.set_moved(i, 0)
-                self.__check_adjacents(i, 1)
+                self.__check_adjacents(i, 0)
             elif (piece >= PIECE_LH):
                 self.set_value(i, 0, PIECE_LV)
                 self.set_moved(i, 0)
-                self.__check_adjacents(i, 1)
+                self.__check_adjacents(i, 0)
 
             # Right edge
             piece = self.get_value(i, self.size - 1)
             if (piece <= PIECE_BE):
                 self.set_value(i, self.size - 1, PIECE_BE)
                 self.set_moved(i, self.size - 1)
-                self.__check_adjacents(i, self.size - 2)
+                self.__check_adjacents(i, self.size - 1)
             elif (piece >= PIECE_LH):
                 self.set_value(i, self.size - 1, PIECE_LV)
                 self.set_moved(i, self.size - 1)
-                self.__check_adjacents(i, self.size - 2)
+                self.__check_adjacents(i, self.size - 1)
 
     def setup(self) -> None:
         """Algoritmo que descobre peças que só podem ter uma posição certa e coloca-as

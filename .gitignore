@@ -5,6 +5,7 @@ __pycache__/
 
 tests/*.myout
 tests/*.diff
+dump.txt
 
 # C extensions
 *.so

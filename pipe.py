@@ -113,8 +113,11 @@ class Board:
     def set_value(self, row: int, col: int, val: int) -> None:
         """Define o valor na respetiva posição do tabuleiro"""
         self.board[row, col, PIECE_IDX] = val
-        #print("set_value("+str(row)+", "+str(col)+", "+piece_to_str(val)+")", file=dumpFile)
-        #print(self.full_str(), file=dumpFile)
+        print("1", file=dumpFile)
+        for l in range(self.size):
+            for c in range(self.size):
+                print(str(self.get_value(l, c))+","+str(1-self.get_movable(l, c))+","+str(0 if l == row and c == col else 1), end="\t", file=dumpFile)
+        print("", file=dumpFile)
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
@@ -123,8 +126,8 @@ class Board:
     def set_movable(self, row: int, col: int, val: int) -> None:
         """Define a peça como movível se 0 e imovível se 1"""
         self.board[row, col, MOVABLE_IDX] = val
-        #print("set_movable("+str(row)+", "+str(col)+", "+str(val)+")", file=dumpFile)
-        #print(self.full_str(), file=dumpFile)
+        print("2", file=dumpFile)
+        print(self.full_str(), file=dumpFile)
     
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
@@ -203,6 +206,11 @@ class Board:
         if (col != self.size - 1 and self.get_movable(row, col + 1)):
             to_check.append((row, col + 1))
         while (to_check):
+            print("3", file=dumpFile)
+            for l in range(self.size):
+                for c in range(self.size):
+                    print(str(self.get_value(l, c))+","+str(1-self.get_movable(l, c))+","+str(-1 if (l,c) not in to_check else (len(to_check) - 1 - to_check.index((l,c)))), end="\t", file=dumpFile)
+            print("", file=dumpFile)
             x, y = to_check.pop()
             if (not self.get_movable(x, y)): #TODO: Pensar melhor nisto
                 continue
@@ -233,7 +241,6 @@ class Board:
         # Corners can never be B pieces, so <= VE is enough
 
         # Top left corner
-        #print("setup_corners top left", file=dumpFile)
         canto = self.get_value(0, 0)
         if (canto <= PIECE_VE):
             self.set_value(0, 0, PIECE_VB)
@@ -241,7 +248,6 @@ class Board:
             self.__check_adjacents(0, 0)
 
         # Top right corner
-        #print("setup_corners top right", file=dumpFile)
         canto = self.get_value(0, self.size - 1)
         if (canto <= PIECE_VE):
             self.set_value(0, self.size - 1, PIECE_VE)
@@ -249,7 +255,6 @@ class Board:
             self.__check_adjacents(0, self.size - 1)
 
         # Bottom left corner
-        #print("setup_corners bottom left", file=dumpFile)
         canto = self.get_value(self.size - 1, 0)
         if (canto <= PIECE_VE):
             self.set_value(self.size - 1, 0, PIECE_VD)
@@ -257,7 +262,6 @@ class Board:
             self.__check_adjacents(self.size - 1, 0)
 
         #Bottom right corner
-        #print("setup_corners bottom right", file=dumpFile)
         canto = self.get_value(self.size - 1, self.size - 1)
         if (canto <= PIECE_VE):
             self.set_value(self.size - 1, self.size - 1, PIECE_VC)
@@ -265,7 +269,6 @@ class Board:
             self.__check_adjacents(self.size - 1, self.size - 1)
 
     def __setup_edges(self) -> None:
-        #print("setup_edges", file=dumpFile)
         for i in range(1, self.size - 1):
             # Top edge
             piece = self.get_value(0, i)
@@ -357,20 +360,12 @@ class Board:
         for row in range(self.size):
             ret += "\n"
             for col in range(self.size):
-                ret += piece_to_str(self.get_value(row, col))
-                ret += "\t"
-            ret = ret[:-1]
-        for row in range(self.size):
-            ret += "\n"
-            for col in range(self.size):
+                ret += str(self.get_value(row, col))
+                ret += ","
                 ret += str(1 - self.get_movable(row, col))
                 ret += "\t"
             ret = ret[:-1]
         return ret[1:]
-
-    def dump(self) -> None:
-        print(self.board)
-        print(self.size)
 
     @staticmethod
     def parse_instance():
@@ -470,9 +465,8 @@ class PipeMania(Problem):
         pass
 
 if __name__ == "__main__":
-    #dumpFile = open("dump.txt", "wt")
+    dumpFile = open("dump.txt", "wt")
     board = Board.parse_instance()
-    #print(board.full_str(), file=dumpFile)
     board.setup()
     problem = PipeMania(board)
     result = depth_first_tree_search(problem)
@@ -480,4 +474,5 @@ if __name__ == "__main__":
         print("No solution found")
     else:
         print(result.state.board)
-    #dumpFile.close()
+    print("-1", file=dumpFile)
+    dumpFile.close()

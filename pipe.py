@@ -77,8 +77,6 @@ IMOVABLE = 1
 
 
 
-# [=== Drawing ===]
-dumpFile = None
 
 # [=== Code ===]
 
@@ -113,11 +111,6 @@ class Board:
     def set_value(self, row: int, col: int, val: int) -> None:
         """Define o valor na respetiva posição do tabuleiro"""
         self.board[row, col, PIECE_IDX] = val
-        print("1", file=dumpFile)
-        for l in range(self.size):
-            for c in range(self.size):
-                print(str(self.get_value(l, c))+","+str(1-self.get_movable(l, c))+","+str(0 if l == row and c == col else 1), end="\t", file=dumpFile)
-        print("", file=dumpFile)
     
     def get_movable(self, row: int, col: int) -> bool:
         """Devolve se a peça pode ser movida"""
@@ -126,12 +119,10 @@ class Board:
     def set_movable(self, row: int, col: int, val: int) -> None:
         """Define a peça como movível se 0 e imovível se 1"""
         self.board[row, col, MOVABLE_IDX] = val
-        print("2", file=dumpFile)
-        print(self.full_str(), file=dumpFile)
     
     def set_moved(self, row: int, col: int) -> None:
         """Define a peça como imovível"""
-        self.set_movable(row, col, IMOVABLE)
+        self.board[row, col, MOVABLE_IDX] = IMOVABLE
 
     def adjacent_values(self, row: int, col: int) -> "tuple[int, int, int, int]":
         """Devolve os valores das peças adjacentes"""
@@ -206,11 +197,6 @@ class Board:
         if (col != self.size - 1 and self.get_movable(row, col + 1)):
             to_check.append((row, col + 1))
         while (to_check):
-            print("3", file=dumpFile)
-            for l in range(self.size):
-                for c in range(self.size):
-                    print(str(self.get_value(l, c))+","+str(1-self.get_movable(l, c))+","+str(-1 if (l,c) not in to_check else (len(to_check) - 1 - to_check.index((l,c)))), end="\t", file=dumpFile)
-            print("", file=dumpFile)
             x, y = to_check.pop()
             if (not self.get_movable(x, y)): #TODO: Pensar melhor nisto
                 continue
@@ -335,38 +321,6 @@ class Board:
             ret = ret[:-1]
         return ret[1:]
 
-    def raw_str(self) -> str:
-        ret = ""
-        for row in range(self.size):
-            ret += "\n"
-            for col in range(self.size):
-                ret += str(self.get_value(row, col))
-                ret += "\t"
-            ret = ret[:-1]
-        return ret[1:]
-
-    def lock_str(self) -> str:
-        ret = ""
-        for row in range(self.size):
-            ret += "\n"
-            for col in range(self.size):
-                ret += str(1 - self.get_movable(row, col))
-                ret += "\t"
-            ret = ret[:-1]
-        return ret[1:]
-
-    def full_str(self) -> str:
-        ret = ""
-        for row in range(self.size):
-            ret += "\n"
-            for col in range(self.size):
-                ret += str(self.get_value(row, col))
-                ret += ","
-                ret += str(1 - self.get_movable(row, col))
-                ret += "\t"
-            ret = ret[:-1]
-        return ret[1:]
-
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -447,14 +401,14 @@ class PipeMania(Problem):
         while (len(flow)):
             x, y = flow.pop()
             flow_map[x, y] = 1
-            valu = state.board.get_value(x, y)
-            if (CONNECTS_UP.__contains__(valu) and flow_map[x-1, y] == 0):
+            value = state.board.get_value(x, y)
+            if (CONNECTS_UP.__contains__(value) and flow_map[x-1, y] == 0):
                 flow.append((x-1, y))
-            if (CONNECTS_DOWN.__contains__(valu) and flow_map[x+1, y] == 0):
+            if (CONNECTS_DOWN.__contains__(value) and flow_map[x+1, y] == 0):
                 flow.append((x+1, y))
-            if (CONNECTS_LEFT.__contains__(valu) and flow_map[x, y-1] == 0):
+            if (CONNECTS_LEFT.__contains__(value) and flow_map[x, y-1] == 0):
                 flow.append((x, y-1))
-            if (CONNECTS_RIGHT.__contains__(valu) and flow_map[x, y+1] == 0):
+            if (CONNECTS_RIGHT.__contains__(value) and flow_map[x, y+1] == 0):
                 flow.append((x, y+1))
 
         return np.all(flow_map)
@@ -465,7 +419,6 @@ class PipeMania(Problem):
         pass
 
 if __name__ == "__main__":
-    dumpFile = open("dump.txt", "wt")
     board = Board.parse_instance()
     board.setup()
     problem = PipeMania(board)
@@ -474,5 +427,3 @@ if __name__ == "__main__":
         print("No solution found")
     else:
         print(result.state.board)
-    print("-1", file=dumpFile)
-    dumpFile.close()
